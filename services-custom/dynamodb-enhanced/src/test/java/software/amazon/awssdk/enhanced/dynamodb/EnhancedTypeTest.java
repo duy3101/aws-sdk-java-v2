@@ -218,6 +218,21 @@ public class EnhancedTypeTest {
         assertThatCode(() -> type.toString()).doesNotThrowAnyException();
     }
 
+    @Test
+    public void documentOf_withEnhancedTypeConfiguration() {
+        TableSchema<String> tableSchema = StaticTableSchema.builder(String.class).build();
+        EnhancedType<String> type = EnhancedType.documentOf(String.class, tableSchema, b -> b.preserveEmptyBean(true));
+        assertThat(type.configuration()).isPresent();
+        assertThat(type.configuration().get().preserveEmptyBean()).isTrue();
+    }
+
+    @Test
+    public void of_withEnhancedTypeConfiguration() {
+        EnhancedType<?> type = EnhancedType.of(InnerType.class, b -> b.preserveEmptyBean(false));
+        assertThat(type.configuration()).isPresent();
+        assertThat(type.configuration().get().preserveEmptyBean()).isFalse();
+    }
+
     public class InnerType {
     }
 

@@ -15,6 +15,7 @@
 
 package software.amazon.awssdk.enhanced.dynamodb.mapper.testbeans;
 
+import java.util.Objects;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbImmutable;
 
 @DynamoDbImmutable(builder = AbstractImmutable.Builder.class)
@@ -27,6 +28,25 @@ public class AbstractImmutable {
 
     public String attribute2() {
         return attribute2;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        AbstractImmutable that = (AbstractImmutable) o;
+
+        return Objects.equals(attribute2, that.attribute2);
+    }
+
+    @Override
+    public int hashCode() {
+        return attribute2 != null ? attribute2.hashCode() : 0;
     }
 
     public static Builder builder() {

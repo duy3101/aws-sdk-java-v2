@@ -30,16 +30,16 @@ public class DocumentAttributeConverter<T> implements AttributeConverter<T> {
 
     private final TableSchema<T> tableSchema;
     private final EnhancedType<T> enhancedType;
+    private final boolean preserveEmptyBean;
 
-    private DocumentAttributeConverter(TableSchema<T> tableSchema,
-                                       EnhancedType<T> enhancedType) {
-        this.tableSchema = tableSchema;
-        this.enhancedType = enhancedType;
+    private DocumentAttributeConverter(Builder<T> builder) {
+        this.tableSchema = builder.tableSchema;
+        this.enhancedType = builder.enhancedType;
+        this.preserveEmptyBean = builder.preserveEmptyBean != null && builder.preserveEmptyBean;
     }
 
-    public static <T> DocumentAttributeConverter create(TableSchema<T> tableSchema,
-                                                        EnhancedType<T> enhancedType) {
-        return new DocumentAttributeConverter(tableSchema, enhancedType);
+    public static <T> Builder<T> builder() {
+        return new Builder<>();
     }
 
     @Override
@@ -49,7 +49,7 @@ public class DocumentAttributeConverter<T> implements AttributeConverter<T> {
 
     @Override
     public T transformTo(AttributeValue input) {
-        return tableSchema.mapToItem(input.m());
+        return tableSchema.mapToItem(input.m(), preserveEmptyBean);
     }
 
     @Override
@@ -60,5 +60,33 @@ public class DocumentAttributeConverter<T> implements AttributeConverter<T> {
     @Override
     public EnhancedType<T> type() {
         return enhancedType;
+    }
+
+    public static final class Builder<T> {
+        private TableSchema<T> tableSchema;
+        private EnhancedType<T> enhancedType;
+        private Boolean preserveEmptyBean;
+
+        private Builder() {
+        }
+
+        public Builder<T> tableSchema(TableSchema<T> tableSchema) {
+            this.tableSchema = tableSchema;
+            return this;
+        }
+
+        public Builder<T> enhancedType(EnhancedType<T> enhancedType) {
+            this.enhancedType = enhancedType;
+            return this;
+        }
+
+        public Builder<T> preserveEmptyBean(Boolean preserveEmptyBean) {
+            this.preserveEmptyBean = preserveEmptyBean;
+            return this;
+        }
+
+        public DocumentAttributeConverter<T> build() {
+            return new DocumentAttributeConverter<>(this);
+        }
     }
 }

@@ -138,6 +138,27 @@ public interface TableSchema<T> {
     T mapToItem(Map<String, AttributeValue> attributeMap);
 
     /**
+     * Takes a raw DynamoDb SDK representation of a record in a table and maps it to a Java object. A new object is
+     * created to fulfil this operation.
+     * <p>
+     * If attributes are missing from the map, that will not cause an error, however if attributes are found in the
+     * map which the mapper does not know how to map, an exception will be thrown.
+     *
+     * @param attributeMap A map of String to {@link AttributeValue} that contains all the raw attributes to map.
+     * @param preserveEmptyBean whether to initializes a bean as empty class if all fields are null when mapping a DynamoDb
+     * record to a Java bean.
+     * @return A new instance of a Java object with all the attributes mapped onto it.
+     * @throws IllegalArgumentException if any attributes in the map could not be mapped onto the new model object.
+     * @see #mapToItem(Map)
+     */
+    default T mapToItem(Map<String, AttributeValue> attributeMap, boolean preserveEmptyBean) {
+        if (preserveEmptyBean) {
+            throw new UnsupportedOperationException();
+        }
+        return mapToItem(attributeMap);
+    }
+
+    /**
      * Takes a modelled object and converts it into a raw map of {@link AttributeValue} that the DynamoDb low-level
      * SDK can work with.
      *

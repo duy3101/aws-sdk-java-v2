@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import software.amazon.awssdk.annotations.Immutable;
 import software.amazon.awssdk.annotations.SdkPublicApi;
@@ -59,6 +60,7 @@ public class EnhancedType<T> {
     private final Class<T> rawClass;
     private final List<EnhancedType<?>> rawClassParameters;
     private final TableSchema<T> tableSchema;
+    private final EnhancedTypeConfiguration configuration;
 
     /**
      * Create a type token, capturing the generic type arguments of the token as {@link Class}es.
@@ -71,11 +73,10 @@ public class EnhancedType<T> {
         this(null);
     }
 
-    private EnhancedType(Type type) {
+    private EnhancedType(Type type, EnhancedTypeConfiguration configuration) {
         if (type == null) {
             type = captureGenericTypeArguments();
         }
-
 
         if (type instanceof WildcardType) {
             this.isWildcard = true;
@@ -88,14 +89,26 @@ public class EnhancedType<T> {
             this.rawClassParameters = loadTypeParameters(type);
             this.tableSchema = null;
         }
+        this.configuration = configuration;
+    }
+
+    private EnhancedType(Type type) {
+        this(type, null);
     }
 
     private EnhancedType(Class<?> rawClass, List<EnhancedType<?>> rawClassParameters, TableSchema<T> tableSchema) {
+        this(rawClass, rawClassParameters, tableSchema, null);
+    }
+
+    private EnhancedType(Class<?> rawClass, List<EnhancedType<?>> rawClassParameters,
+                         TableSchema<T> tableSchema,
+                         EnhancedTypeConfiguration configuration) {
         // This is only used internally, so we can make sure this cast is safe via testing.
         this.rawClass = (Class<T>) rawClass;
         this.isWildcard = false;
         this.rawClassParameters = rawClassParameters;
         this.tableSchema = tableSchema;
+        this.configuration = configuration;
     }
 
     /**
@@ -123,6 +136,25 @@ public class EnhancedType<T> {
     public static EnhancedType<?> of(Type type) {
         return new EnhancedType<>(type);
     }
+
+    /**
+     * Create a type token for the provided non-parameterized class with {@link EnhancedTypeConfiguration}
+     *
+     * @param type the type
+     * @param enhancedTypeConfigurationBuilder the consumer builder to create an {@link EnhancedTypeConfiguration}
+     * @return an instance of {@link EnhancedType}
+     * @see #of(Type)
+     */
+    public static EnhancedType<?> of(Type type, Consumer<EnhancedTypeConfiguration.Builder> enhancedTypeConfigurationBuilder) {
+        EnhancedTypeConfiguration.Builder builder = EnhancedTypeConfiguration.builder();
+        enhancedTypeConfigurationBuilder.accept(builder);
+        return new EnhancedType<>(type, builder.build());
+    }
+
+    public static EnhancedType<?> of(Type type, EnhancedTypeConfiguration enhancedTypeConfigurationBuilder) {
+        return new EnhancedType<>(type, enhancedTypeConfigurationBuilder);
+    }
+
 
     /**
      * Create a type token for a optional, with the provided value type class.
@@ -411,6 +443,20 @@ public class EnhancedType<T> {
         return new EnhancedType<>(documentClass, null, documentTableSchema);
     }
 
+    /**
+     * Create a type token that represents a document that is specified by the provided {@link TableSchema}.
+     *
+     * @param documentClass The Class representing the modeled document.
+     * @param documentTableSchema A TableSchema that describes the properties of the document.
+     * @return a new {@link EnhancedType} representing the provided document.
+     */
+    public static <T> EnhancedType<T> documentOf(Class<T> documentClass, TableSchema<T> documentTableSchema,
+                                                 Consumer<EnhancedTypeConfiguration.Builder> enhancedTypeConfigurationBuilder) {
+        EnhancedTypeConfiguration.Builder builder = EnhancedTypeConfiguration.builder();
+        enhancedTypeConfigurationBuilder.accept(builder);
+        return new EnhancedType<>(documentClass, null, documentTableSchema, builder.build());
+    }
+
     private static Type validateIsSupportedType(Type type) {
         Validate.validState(type != null, "Type must not be null.");
         Validate.validState(!(type instanceof GenericArrayType),
@@ -466,6 +512,13 @@ public class EnhancedType<T> {
     public List<EnhancedType<?>> rawClassParameters() {
         Validate.isTrue(!isWildcard, "A wildcard type is not expected here.");
         return rawClassParameters;
+    }
+
+    /**
+     * Retrieve the {@link EnhancedTypeConfiguration} for this EnhancedType
+     */
+    public Optional<EnhancedTypeConfiguration> configuration() {
+        return Optional.ofNullable(configuration);
     }
 
     private Type captureGenericTypeArguments() {

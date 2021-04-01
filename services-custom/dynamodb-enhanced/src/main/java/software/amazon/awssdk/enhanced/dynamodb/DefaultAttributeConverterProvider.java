@@ -159,7 +159,12 @@ public final class DefaultAttributeConverterProvider implements AttributeConvert
         }
 
         if (type.tableSchema().isPresent()) {
-            converter = DocumentAttributeConverter.create(type.tableSchema().get(), type);
+            boolean preserveEmptyBean = type.configuration().map(EnhancedTypeConfiguration::preserveEmptyBean).orElse(false);
+
+            converter = DocumentAttributeConverter.<T>builder().tableSchema(type.tableSchema().get())
+                                                               .enhancedType(type)
+                                                               .preserveEmptyBean(preserveEmptyBean)
+                                                               .build();
         }
 
         if (converter != null && shouldCache(type.rawClass())) {
